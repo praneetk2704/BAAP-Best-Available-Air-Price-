@@ -5,24 +5,25 @@
 from selenium import webdriver
 from datetime import datetime
 from datetime import timedelta
-import Send_Text
 import time
+import os
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.keys import Keys
 
 
 # ----------------  USER INPUT  ---------------- #
 
-Source_Airport_Code = 'ixs'         # Enter only the airport code and not the name.
-Destination_Airport_Code = 'del'
+Source_Airport_Code = 'del'         # Enter only the airport code and not the name.
+Destination_Airport_Code = 'ixl'
 
-DOJ = '03/12/2017'                  # dd/mm/yyyy
+DOJ = '02/10/2018'                  # dd/mm/yyyy
 
 Flexible_Dates = 2
 ''' Set to 0 if you are travelling only on a fixed date. If your dates are flexible,
-enter the required number (> 0) and the script will also crawl the dates ahead of the DOJ. Eg. if DOJ = 03-12-2017 and 
-Flexible_Dates = 2, the script will also crawl 04-12-2017 and 05-12-2017. '''
+enter the required number (> 0) and the script will also crawl the dates ahead of the DOJ. Eg. if DOJ = 02/10/2018 and 
+Flexible_Dates = 2, the script will also crawl 03/10/2018 and 04/10/2018. '''
 
 Class = 'E'                         # E : Economy, B : Business
 
@@ -30,11 +31,15 @@ Adults = '1'                        # Max 9 passengers
 Children = '0'
 Infants = '0'
 
-Threshold_Price = 6000
+Threshold_Price = 2500
 ''' Enter the total threshold value. Eg. if you are 2 passengers and you want the
 price for each passenger to be a min of 2500, enter 5000 and not 2500. '''
 
-Time_Interval = 15                   # In minutes. Crawls again after the given time interval.
+mobile_number_input = ''                    # Your way2sms mobile number/username
+password_input = ''                         # Your way2sms password
+receiving_number_input = ''                 # The mobile number on which you want the text to be delivered.
+
+Time_Interval = 15                          # In minutes. Crawls again after the given time interval.
 
 
 # --------------- DO NOT CHANGE --------------- #
@@ -92,7 +97,6 @@ while count1 is 0:
         # -------------------- INITIALIZE CHROMEDRIVER ------------------- #
 
         driver = webdriver.Chrome('E:\Python\chromedriver.exe')
-        driver.set_window_position(-10000, 0)
         driver.get(url)
         try:
             WebDriverWait(driver, 60).until(  # Explicit wait to ensure that page has fully loaded
@@ -132,17 +136,54 @@ while count1 is 0:
 
         print("\nCheapest price : ₹" + str(min_price) + "\n")  # Print minimum price
 
-        driver.quit()  # Quit the browser
+        driver.quit()
 
-        # -----------------------  SEND TEXT  ------------------- #
+        # -------------------------  SEND TEXT  ---------------------------- #
 
         if min_price <= Threshold_Price:
-            q = Send_Text.sms('username', 'password')
-            message = "Flight prices dropped to Rs." + str(min_price) + " for " + day + "-" + month + "-" + year
-            print(message)
-            q.send('7086831381', message)
-            n = q.msgSentToday()
-            q.logout()
+
+            message_input = "Flight prices dropped to Rs." + str(min_price) + " for " + day + "-" + month + "-" + year
+            print(message_input)
+
+            os.startfile('E:\Backup\My Music\Bhojpuri\Chhalakata Hamro Jawaniya.mp3')   # Play music from your PC
+
+            driver = webdriver.Chrome('E:\Python\chromedriver.exe')
+            url = 'http://www.way2sms.com'
+            driver.get(url)
+            try:
+                WebDriverWait(driver, 20).until(  # Explicit wait to ensure that page has fully loaded
+                    EC.presence_of_element_located((By.PARTIAL_LINK_TEXT, "Dummy text"))
+                )
+            except:
+                pass
+
+            username = driver.find_element_by_id('username')
+            password = driver.find_element_by_id('password')
+
+            username.send_keys(mobile_number_input)
+            password.send_keys(password_input)
+            password.send_keys(Keys.RETURN)
+
+            send_sms = driver.find_element_by_xpath('//a[@href="' + "javascript:loadSMSPage('sendSMS');" + '"]');
+            send_sms.click()
+
+            frame = driver.find_element_by_id('frame')
+            driver.switch_to.frame(frame)
+
+            receiving_number = driver.find_element_by_id('mobile')
+            message_box = driver.find_element_by_id('message')
+            send = driver.find_element_by_id('Send')
+
+            receiving_number.send_keys(receiving_number_input)
+            message_box.send_keys(message_input)
+            send.click()
+            try:
+                WebDriverWait(driver, 20).until(  # Explicit wait to ensure that page has fully loaded
+                    EC.presence_of_element_located((By.PARTIAL_LINK_TEXT, "Dummy text"))
+                )
+            except:
+                pass
+
             exit()
 
     time.sleep(60*Time_Interval)
